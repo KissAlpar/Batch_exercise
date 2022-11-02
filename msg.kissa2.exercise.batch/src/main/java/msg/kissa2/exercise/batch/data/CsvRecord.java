@@ -14,5 +14,4 @@ public class CsvRecord {
     public List<String> getList() {
     	return this.list;
     }
-
 }

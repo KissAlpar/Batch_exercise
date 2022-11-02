@@ -19,6 +19,7 @@ import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import msg.kissa2.exercise.batch.writer.DocumentWriter;
 
 import java.io.*;
 import java.net.URISyntaxException;
@@ -49,7 +50,7 @@ public class BatchConfiguration {
 
     // this reader reads String[] as a row from csv
     @Bean
-    public ItemReader<CsvRecord> reader() {
+    public ItemReader reader() {
         try {
             Reader reader = Files.newBufferedReader(path);
             CSVParser parser = new CSVParserBuilder()
@@ -63,14 +64,15 @@ public class BatchConfiguration {
 
     // this writer can write a table into csv
     @Bean
-    public ItemWriter writer() {
-        return new CsvTableWriter();
+    public ItemWriter writer() throws Exception {
+        //return new CsvTableWriter();
+    	return new DocumentWriter();
     }
 
-    @Bean
+    /*@Bean
     public ItemProcessor recordProcessor() {
         return new CsvRecordProcessor();
-    }
+    }*/
 
     // define jobs and steps
     @Bean
@@ -116,11 +118,11 @@ public class BatchConfiguration {
     }
 
     @Bean
-    public Step step(ItemReader<CsvRecord> reader) {
+    public Step step(ItemReader<CsvRecord> reader) throws Exception {
         return  stepBuilderFactory.get("step")
                 .chunk(100)
                 .reader(reader)
-                .processor(recordProcessor())
+                //.processor(recordProcessor())
                 .writer(writer())
                 .build();
     }
