@@ -11,7 +11,7 @@ public class Timpl102 extends Table {
 
     @Override
     protected void buildStructure() {
-        setName("Timpl100");
+        setName("Timpl102");
         schema = Arrays.asList(
                 "LFD_NR",
                 "KONTO",

@@ -3,12 +3,13 @@ package msg.kissa2.exercise.batch.data;
 
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 @Data
-
 public abstract class Table {
     public String name;
     public List<String> schema;
@@ -41,11 +42,30 @@ public abstract class Table {
         public Map<String, String> columns;
 
         public void setAttribute(String name, String value) {
+            if (columns == null) {
+                columns = new HashMap<>();
+            }
             columns.put(name, value);
         }
 
         public List<String> getValues() {
-            return columns.values().stream().collect(Collectors.toList());
+            return new ArrayList<>(columns.values());
         }
+    }
+    
+    public String getName() {
+    	return this.name;
+    }
+    
+    public void setName(String name) {
+    	this.name = name;
+    }
+    
+    public List<Record> getRecords() {
+    	return this.records;
+    }
+    
+    public List<String> getSchema() {
+    	return this.schema;
     }
 }

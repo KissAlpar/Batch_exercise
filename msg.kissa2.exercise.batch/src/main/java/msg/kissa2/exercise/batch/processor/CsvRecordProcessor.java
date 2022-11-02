@@ -24,9 +24,9 @@ public class CsvRecordProcessor implements ItemProcessor<CsvRecord, Table> {
 
     private Table buildTable(Table table, List<String> fields) {
         Table.Record rec = new Table.Record();
-        for (int i = 0; i < fields.size(); i++) {
+        for (int i = 0; i < table.schema.size(); i++) {
             String key = table.getSchema().get(i);
-            String value = fields.get(i);
+            String value = fields.get(i + 1); // skip table name
             rec.setAttribute(key, value);
         }
         table.insertRecord(rec);

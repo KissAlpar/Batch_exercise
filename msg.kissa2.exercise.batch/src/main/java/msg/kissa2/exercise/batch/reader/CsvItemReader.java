@@ -11,7 +11,6 @@ import org.springframework.batch.item.UnexpectedInputException;
 
 import java.io.Reader;
 import java.util.Arrays;
-import java.util.List;
 
 public class CsvItemReader implements ItemReader<CsvRecord> {
 
@@ -19,13 +18,18 @@ public class CsvItemReader implements ItemReader<CsvRecord> {
 
     public  CsvItemReader(Reader reader, CSVParser parser) {
         this.reader = new CSVReaderBuilder(reader)
-                .withSkipLines(0)
+                .withSkipLines(1)
                 .withCSVParser(parser)
                 .build();
     }
 
     @Override
     public CsvRecord read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
-        return new CsvRecord(Arrays.asList(reader.readNext()));
+        String[] content = reader.readNext();
+        if (content == null) {
+            reader.close();
+            return  null;
+        }
+        return new CsvRecord(Arrays.asList(content)); // TODO: itt bufferelhetek tobbet
     }
 }

@@ -50,7 +50,8 @@ public class BatchConfiguration {
     // this reader reads String[] as a row from csv
     @Bean
     public ItemReader<CsvRecord> reader() {
-        try(Reader reader = Files.newBufferedReader(path)) {
+        try {
+            Reader reader = Files.newBufferedReader(path);
             CSVParser parser = new CSVParserBuilder()
                     .withSeparator(';')
                     .build();
@@ -76,7 +77,7 @@ public class BatchConfiguration {
     public Job segregateHistFile(Step step) {
         return  jobBuilderFactory.get("segregateHistFileJob")
                 .incrementer(new RunIdIncrementer())
-                //.start(deleteFiles())
+                .start(deleteFiles())
                 .start(step)
                 .build();
     }
@@ -95,15 +96,15 @@ public class BatchConfiguration {
 
             @Override
             public int getStartLimit() {
-                return 1;
+                return 2;
             }
 
             @Override
             public void execute(StepExecution stepExecution) throws JobInterruptedException {
                 List<File> files = Arrays.asList(
-                        new File("resources/TIMPL100.csv"),
-                        new File("resources/TIMPL101.csv"),
-                        new File("resources/TIMPL102.csv")
+                        new File("TIMPL100.csv"),
+                        new File("TIMPL101.csv"),
+                        new File("TIMPL102.csv")
                 );
                 for (File f : files) {
                     if (f.exists()) {

@@ -24,6 +24,7 @@ public class CsvTableWriter implements ItemWriter<Table> {
                 CSVWriter csvWriter = new CSVWriter(new FileWriter(file));
                 List<String> schema = table.getSchema();
                 csvWriter.writeNext(schema.toArray(new String[schema.size()]));
+                csvWriter.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -39,6 +40,7 @@ public class CsvTableWriter implements ItemWriter<Table> {
                     new ArrayList<>(vals).toArray(row);
                     csvWriter.writeNext(row);
                 }
+                csvWriter.close();
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
