@@ -8,14 +8,20 @@ import msg.kissa2.exercise.batch.writer.CsvTableWriter;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobInterruptedException;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.builder.FlowBuilder;
+import org.springframework.batch.core.job.flow.Flow;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -76,52 +82,48 @@ public class BatchConfiguration {
 
     // define jobs and steps
     @Bean
-    public Job segregateHistFile(Step step) {
+    public Job segregateHistFile() throws Exception {
         return  jobBuilderFactory.get("segregateHistFileJob")
                 .incrementer(new RunIdIncrementer())
-                .start(deleteFiles())
-                .start(step)
+                .start(
+                	new FlowBuilder<Flow>("flow")
+                		.start(deleteFiles())
+                		.next(step())
+                		.build()
+                )
+                .end()
                 .build();
     }
     @Bean
     public Step deleteFiles() {
-        return new Step() {
-            @Override
-            public String getName() {
-                return "Delete files";
-            }
+    	return stepBuilderFactory.get("deleteFIles")
+    			.tasklet(new Tasklet() {
 
-            @Override
-            public boolean isAllowStartIfComplete() {
-                return false;
-            }
-
-            @Override
-            public int getStartLimit() {
-                return 2;
-            }
-
-            @Override
-            public void execute(StepExecution stepExecution) throws JobInterruptedException {
-                List<File> files = Arrays.asList(
-                        new File("TIMPL100.csv"),
-                        new File("TIMPL101.csv"),
-                        new File("TIMPL102.csv")
-                );
-                for (File f : files) {
-                    if (f.exists()) {
-                        f.delete();
-                    }
-                }
-            }
-        };
+					@Override
+					public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext)
+							throws Exception {
+						List<File> files = Arrays.asList(
+		                        new File("TIMPL100.csv"),
+		                        new File("TIMPL101.csv"),
+		                        new File("TIMPL102.csv")
+		                );
+		                for (File f : files) {
+		                    if (f.exists()) {
+		                        f.delete();
+		                    }
+		                }
+						return RepeatStatus.FINISHED;
+					}
+    			
+    			})
+    			.build();   
     }
 
     @Bean
-    public Step step(ItemReader<CsvRecord> reader) throws Exception {
+    public Step step() throws Exception {
         return  stepBuilderFactory.get("step")
                 .chunk(100)
-                .reader(reader)
+                .reader(reader())
                 //.processor(recordProcessor())
                 .writer(writer())
                 .build();
