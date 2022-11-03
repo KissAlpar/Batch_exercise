@@ -1,7 +1,5 @@
 package msg.kissa2.exercise.batch.data;
 
-import lombok.Data;
-
 import java.util.List;
 
 public class CsvRecord {

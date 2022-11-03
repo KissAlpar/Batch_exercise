@@ -5,6 +5,8 @@ import org.springframework.batch.item.ItemProcessor;
 
 import java.util.List;
 
+
+// use this only with the first implementation of writer (CsvTableWriter)
 public class CsvRecordProcessor implements ItemProcessor<CsvRecord, Table> {
 
     public CsvRecordProcessor() {}

@@ -9,8 +9,6 @@ import java.util.List;
 
 public class CsvTableWriter implements ItemWriter<Table> {
 
-    private Writer writer;
-
     public CsvTableWriter() {
     }
 
