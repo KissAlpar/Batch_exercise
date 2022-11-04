@@ -131,7 +131,7 @@ public class BatchConfiguration {
     }
     
     @Bean
-    public Step joinTablesStep() {
+    public Step joinTablesStep() throws IOException {
     	return stepBuilderFactory.get("joinTablesStep")
     			.tasklet(new JoinTasklet())
     			.build();
