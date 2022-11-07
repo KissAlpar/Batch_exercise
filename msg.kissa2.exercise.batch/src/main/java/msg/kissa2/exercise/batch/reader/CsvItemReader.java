@@ -9,6 +9,7 @@ import org.springframework.batch.item.NonTransientResourceException;
 import org.springframework.batch.item.ParseException;
 import org.springframework.batch.item.UnexpectedInputException;
 
+import java.io.IOException;
 import java.io.Reader;
 import java.util.Arrays;
 
@@ -30,6 +31,14 @@ public class CsvItemReader implements ItemReader<CsvRecord> {
             reader.close();
             return  null;
         }
-        return new CsvRecord(Arrays.asList(content)); // TODO: itt bufferelhetek tobbet
+        return new CsvRecord(Arrays.asList(content));
+    }
+    
+    public void close() {
+    	try {
+			reader.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
     }
 }

@@ -50,6 +50,10 @@ public abstract class Table {
         public List<String> getValues() {
             return new ArrayList<>(columns.values());
         }
+        
+        public String getValue(String key) {
+        	return columns.get(key);
+        }
     }
     
     public String getName() {
