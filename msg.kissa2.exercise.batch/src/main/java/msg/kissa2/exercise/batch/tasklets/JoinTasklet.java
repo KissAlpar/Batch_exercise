@@ -29,11 +29,11 @@ import msg.kissa2.exercise.batch.data.Timpl101;
 import msg.kissa2.exercise.batch.data.Timpl102;
 import msg.kissa2.exercise.batch.reader.CsvItemReader;
 
-//basic idea:
-//	open connection to each files, and perform join in memory
+// basic idea:
+//	open connection to each files, and perform join in memory on chunks; write the output immediately 
+//  and clear buffers to keep the memory usage on average / avoid high memory usage
+//  (chunks size depends on the number of equal konto~p.k. records)
 //  read from 100 & 101 => join => read from 102 => join with prev. reult => write result
-
-// errors exists in this version
 
 public class JoinTasklet implements Tasklet {
 
@@ -55,8 +55,6 @@ public class JoinTasklet implements Tasklet {
 
 	@Override
 	public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-		// System.out.println("FIGYELEM: EZ ITTEN A JOIN TASKLET");
-
 		List<Table.Record> fstTwoJoined = new ArrayList<>();
 		List<Table.Record> finalResult = new ArrayList<>();
 
@@ -71,7 +69,7 @@ public class JoinTasklet implements Tasklet {
 
 		// while both files contains data
 		while (fst100 != null && fst101 != null && fst102 != null) {
-			// System.out.println("PROCESSING: " + fst100.getList().get(0));
+
 			// clear buffers, because their content is already joined
 			records100.clear();
 			records101.clear();
@@ -117,7 +115,6 @@ public class JoinTasklet implements Tasklet {
 			}
 
 			fstTwoJoined.addAll(innerJoin(records100, records101));
-			// System.out.println("INNER JOIN");
 
 			// read until find matching values from last file (repeat steps)
 			Double konto102 = Double.parseDouble(rec102.getList().get(1));
@@ -147,13 +144,11 @@ public class JoinTasklet implements Tasklet {
 					} catch (IndexOutOfBoundsException e) {
 						// empty line at the end of the file
 						// do nothing, error is handled in other functions
-						// System.out.println("WTF");
 					}
 				}
 			}
 
 			finalResult.addAll(leftJoin(fstTwoJoined, records102));
-			// System.out.println("LEFT JOIN");
 
 			// write final result chunk to output file
 			writeOutput(finalResult);
@@ -177,7 +172,7 @@ public class JoinTasklet implements Tasklet {
 
 	private void writeOutput(List<Table.Record> records) throws IOException {
 		for (int i = 0; i < records.size(); i++) {
-			// put records manually in correct order
+			// put records manually to keep correct order
 			ArrayList<String> data = new ArrayList<>();
 			data.add(records.get(i).getValue("KONTO"));
 			data.add(records.get(i).getValue("STATUS"));
@@ -214,7 +209,8 @@ public class JoinTasklet implements Tasklet {
 			Table.Record convRec = convertRecord(rec, new Timpl102());
 			rightSideRecords.add(convRec);
 		}
-
+		
+		// perform left join
 		List<Table.Record> joinRes = new ArrayList<>();
 		for (Table.Record rec1 : leftSideRecords) {
 			for (Table.Record rec2 : rightSideRecords) {
@@ -233,7 +229,7 @@ public class JoinTasklet implements Tasklet {
 					}
 					joinRes.add(joinedRec);
 				} else {
-					joinRes.add(rec1);
+					joinRes.add(rec1); // adding left side values
 				}
 			}
 		}
