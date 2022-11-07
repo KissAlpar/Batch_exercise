@@ -55,7 +55,7 @@ public class JoinTasklet implements Tasklet {
 
 	@Override
 	public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-		System.out.println("FIGYELEM: EZ ITTEN A JOIN TASKLET");
+		// System.out.println("FIGYELEM: EZ ITTEN A JOIN TASKLET");
 
 		List<Table.Record> fstTwoJoined = new ArrayList<>();
 		List<Table.Record> finalResult = new ArrayList<>();
@@ -71,7 +71,7 @@ public class JoinTasklet implements Tasklet {
 
 		// while both files contains data
 		while (fst100 != null && fst101 != null && fst102 != null) {
-			System.out.println("PROCESSING: " + fst100.getList().get(0));
+			// System.out.println("PROCESSING: " + fst100.getList().get(0));
 			// clear buffers, because their content is already joined
 			records100.clear();
 			records101.clear();
@@ -117,7 +117,7 @@ public class JoinTasklet implements Tasklet {
 			}
 
 			fstTwoJoined.addAll(innerJoin(records100, records101));
-			System.out.println("INNER JOIN");
+			// System.out.println("INNER JOIN");
 
 			// read until find matching values from last file (repeat steps)
 			Double konto102 = Double.parseDouble(rec102.getList().get(1));
@@ -146,13 +146,14 @@ public class JoinTasklet implements Tasklet {
 						konto102 = Double.parseDouble(rec102.getList().get(1));
 					} catch (IndexOutOfBoundsException e) {
 						// empty line at the end of the file
-						System.out.println("WTF");
+						// do nothing, error is handled in other functions
+						// System.out.println("WTF");
 					}
 				}
 			}
 
 			finalResult.addAll(leftJoin(fstTwoJoined, records102));
-			System.out.println("LEFT JOIN");
+			// System.out.println("LEFT JOIN");
 
 			// write final result chunk to output file
 			writeOutput(finalResult);
@@ -176,7 +177,31 @@ public class JoinTasklet implements Tasklet {
 
 	private void writeOutput(List<Table.Record> records) throws IOException {
 		for (int i = 0; i < records.size(); i++) {
-			ArrayList<String> data = new ArrayList(records.get(i).getValues());
+			// put records manually in correct order
+			ArrayList<String> data = new ArrayList<>();
+			data.add(records.get(i).getValue("KONTO"));
+			data.add(records.get(i).getValue("STATUS"));
+			data.add(records.get(i).getValue("STUFE"));
+			data.add(records.get(i).getValue("KTOSALDO"));
+			data.add(records.get(i).getValue("VERTR_DATAB"));
+			data.add(records.get(i).getValue("VERTR_DATBI"));
+			data.add(records.get(i).getValue("BEW_DAR_BETR"));
+			data.add(records.get(i).getValue("ZS"));
+			data.add(records.get(i).getValue("EFF_ZS"));
+			data.add(records.get(i).getValue("FORWARD_KZ"));
+			data.add(records.get(i).getValue("AUFL_KZ"));
+			data.add(records.get(i).getValue("BGB_KZ"));
+			data.add(records.get(i).getValue("SOTI_DATAB"));
+			data.add(records.get(i).getValue("SOTI_DATBI"));
+			data.add(records.get(i).getValue("PRODUKTNR"));
+			data.add(records.get(i).getValue("ANL_DAT"));
+			data.add(records.get(i).getValue("DATUM_VON"));
+			data.add(records.get(i).getValue("DATUM_BIS"));
+			data.add(records.get(i).getValue("BETRAG_OPT"));
+			data.add(records.get(i).getValue("BETRAG_SOTI"));
+			data.add(records.get(i).getValue("DATUM"));
+			data.add(records.get(i).getValue("BETRAG"));
+			data.add(records.get(i).getValue("TYP"));
 			outputWriter.printRecord(data);
 		}
 	}
@@ -193,12 +218,20 @@ public class JoinTasklet implements Tasklet {
 		List<Table.Record> joinRes = new ArrayList<>();
 		for (Table.Record rec1 : leftSideRecords) {
 			for (Table.Record rec2 : rightSideRecords) {
+				if (rec1 == null || rec2 == null) {
+					continue;
+				}
+				
 				String status1 = rec1.getValue("STATUS");
 				String status2 = rec2.getValue("STATUS");
 				String stufe1 = rec1.getValue("STUFE");
 				String stufe2 = rec2.getValue("STUFE");
 				if (status1.equals(status2) && stufe1.equals(stufe2)) {
-					joinRes.add(joinRecords(rec1, rec2, new JoinResultTable()));
+					Table.Record joinedRec = joinRecords(rec1, rec2, new JoinResultTable());
+					if (joinedRec == null) {
+						continue;
+					}
+					joinRes.add(joinedRec);
 				} else {
 					joinRes.add(rec1);
 				}
@@ -216,7 +249,11 @@ public class JoinTasklet implements Tasklet {
 				String status1 = rec1.getList().get(2);
 				String status2 = rec2.getList().get(1);
 				if (status1.equals(status2)) {
-					fstTwoJoined.add(joinRecords(rec1, rec2, new Timpl100(), new Timpl101(), new JoinResultTable()));
+					Table.Record joinedRec = joinRecords(rec1, rec2, new Timpl100(), new Timpl101(), new JoinResultTable());
+					if (joinedRec == null) { // if the join cannot happen (e.g. because some fields doesn't match the schema)
+						continue;
+					}
+					fstTwoJoined.add(joinedRec);
 				}
 			}
 		}
@@ -231,6 +268,10 @@ public class JoinTasklet implements Tasklet {
 	}
 
 	private Table.Record joinRecords(Table.Record rec1, Table.Record rec2, Table table) {
+		if (rec1 == null || rec2 == null) {
+			return null;
+		}
+		
 		Table.Record result = new Table.Record();
 
 		for (String attributeName : table.getSchema()) {
@@ -250,9 +291,14 @@ public class JoinTasklet implements Tasklet {
 	private Table.Record convertRecord(CsvRecord rec, Table table) {
 		Table.Record newRecord = new Table.Record();
 		for (int i = 0; i < table.getSchema().size(); i++) {
-			String key = table.getSchema().get(i);
-			String value = rec.getList().get(i);
-			newRecord.setAttribute(key, value);
+			try {
+				String key = table.getSchema().get(i);
+				String value = rec.getList().get(i);
+				newRecord.setAttribute(key, value);
+			} catch (IndexOutOfBoundsException e) { // maybe the record doesn't match the schema
+				return null;
+			}
+			
 		}
 		return newRecord;
 	}
