@@ -26,3 +26,11 @@ Hint: files are ordered by field 'KONTO'
 
 Output: 1 csv file containing the joined data
 
+## Exercise 3
+
+Goal: filter the input csv files from **exercise 1**, log some infos
+
+Input: filter conditions, info to log
+
+Output: a list of csv files (no need to separate from output 1), log in console
+
