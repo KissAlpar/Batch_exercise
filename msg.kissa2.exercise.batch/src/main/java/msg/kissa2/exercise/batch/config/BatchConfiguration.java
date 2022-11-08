@@ -9,9 +9,11 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.batch.core.ItemProcessListener;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
@@ -31,6 +33,7 @@ import org.springframework.context.annotation.Configuration;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 
+import msg.kissa2.exercise.batch.listeners.FilterProcessListener;
 import msg.kissa2.exercise.batch.processor.FilterProcessor;
 import msg.kissa2.exercise.batch.reader.CsvItemReader;
 import msg.kissa2.exercise.batch.tasklets.JoinTasklet;
@@ -89,6 +92,11 @@ public class BatchConfiguration {
     }
     
     @Bean
+    public StepExecutionListener recordFilterListener() {
+    	return new FilterProcessListener();
+    }
+    
+    @Bean
     public Job segregateHistFile() throws Exception {
         return  jobBuilderFactory.get("segregateHistFileJob")
                 .incrementer(new RunIdIncrementer())
@@ -131,6 +139,7 @@ public class BatchConfiguration {
 	@Bean
     public Step segregateTablesStep() throws Exception {
         return  stepBuilderFactory.get("segregateTablesStep")
+        		.listener(recordFilterListener())
                 .chunk(100)
                 .reader(reader())
                 //.processor(recordProcessor())
