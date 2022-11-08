@@ -81,12 +81,16 @@ public class JoinTasklet implements Tasklet {
 			// match konto field (because both files are ordered by this)
 			CsvRecord rec100 = fst100, rec101 = fst101, rec102 = fst102;
 			while (konto100.compareTo(konto101) < 0) {
-				rec100 = readNextRecord(reader100);
+				if ((rec100 = readNextRecord(reader100)) == null) {
+					break;
+				}
 				konto100 = Double.parseDouble(rec100.getList().get(0));
 			}
 
 			while (konto100.compareTo(konto101) > 0) {
-				rec101 = readNextRecord(reader101);
+				if ((rec101 = readNextRecord(reader101)) == null) {
+					break;
+				}
 				konto101 = Double.parseDouble(rec101.getList().get(0));
 			}
 
@@ -94,8 +98,12 @@ public class JoinTasklet implements Tasklet {
 			while (konto100.compareTo(konto101) == 0) {
 				records100.add(rec100);
 				records101.add(rec101);
-				rec100 = readNextRecord(reader100);
-				rec101 = readNextRecord(reader101);
+				if ((rec100 = readNextRecord(reader100)) == null) {
+					break;
+				}
+				if ((rec101 = readNextRecord(reader101)) == null) {
+					break;
+				}
 				konto100 = Double.parseDouble(rec100.getList().get(0));
 				konto101 = Double.parseDouble(rec101.getList().get(0));
 			}
@@ -104,13 +112,17 @@ public class JoinTasklet implements Tasklet {
 			// e.g. 101 contains more records with previous konto it needs to be added
 			while (konto100.compareTo(konto101) < 0) {
 				records100.add(rec100);
-				rec100 = readNextRecord(reader100);
+				if ((rec100 = readNextRecord(reader100)) == null) {
+					break;
+				}
 				konto100 = Double.parseDouble(rec100.getList().get(0));
 			}
 
 			while (konto100.compareTo(konto101) > 0) {
 				records101.add(rec101);
-				rec101 = readNextRecord(reader101);
+				if ((rec101 = readNextRecord(reader101)) == null) {
+					break;
+				}
 				konto101 = Double.parseDouble(rec101.getList().get(0));
 			}
 
@@ -206,10 +218,10 @@ public class JoinTasklet implements Tasklet {
 		// get right side records with schema
 		List<Table.Record> rightSideRecords = new ArrayList<>();
 		for (CsvRecord rec : redords3) {
-			Table.Record convRec = convertRecord(rec, new Timpl102());
+			Table.Record convRec = rec.convertRecord(new Timpl102());
 			rightSideRecords.add(convRec);
 		}
-		
+
 		// perform left join
 		List<Table.Record> joinRes = new ArrayList<>();
 		for (Table.Record rec1 : leftSideRecords) {
@@ -217,7 +229,7 @@ public class JoinTasklet implements Tasklet {
 				if (rec1 == null || rec2 == null) {
 					continue;
 				}
-				
+
 				String status1 = rec1.getValue("STATUS");
 				String status2 = rec2.getValue("STATUS");
 				String stufe1 = rec1.getValue("STUFE");
@@ -239,14 +251,33 @@ public class JoinTasklet implements Tasklet {
 
 	// join on konto & status
 	private List<Table.Record> innerJoin(List<CsvRecord> records1, List<CsvRecord> records2) {
+
+		// conversion to records (with known schema)
+		List<Table.Record> leftSideRecords = new ArrayList<>();
+		for (CsvRecord rec : records1) {
+			Table.Record convRec = rec.convertRecord(new Timpl100());
+			leftSideRecords.add(convRec);
+		}
+		List<Table.Record> rightSideRecords = new ArrayList<>();
+		for (CsvRecord rec : records2) {
+			Table.Record convRec = rec.convertRecord(new Timpl101());
+			rightSideRecords.add(convRec);
+		}
+
+		// perform inner join
 		List<Table.Record> fstTwoJoined = new ArrayList<>();
-		for (CsvRecord rec1 : records1) {
-			for (CsvRecord rec2 : records2) {
-				String status1 = rec1.getList().get(2);
-				String status2 = rec2.getList().get(1);
+		for (Table.Record rec1 : leftSideRecords) {
+			for (Table.Record rec2 : rightSideRecords) {
+				if (rec1 == null || rec2 == null) {
+					continue;
+				}
+
+				String status1 = rec1.getValue("STATUS");
+				String status2 = rec2.getValue("STATUS");
 				if (status1.equals(status2)) {
-					Table.Record joinedRec = joinRecords(rec1, rec2, new Timpl100(), new Timpl101(), new JoinResultTable());
-					if (joinedRec == null) { // if the join cannot happen (e.g. because some fields doesn't match the schema)
+					Table.Record joinedRec = joinRecords(rec1, rec2, new JoinResultTable());
+					if (joinedRec == null) { // if the join cannot happen (e.g. because some fields doesn't match the
+												// schema)
 						continue;
 					}
 					fstTwoJoined.add(joinedRec);
@@ -256,18 +287,11 @@ public class JoinTasklet implements Tasklet {
 		return fstTwoJoined;
 	}
 
-	private Table.Record joinRecords(CsvRecord rec1, CsvRecord rec2, Table structure1, Table structure2, Table table) {
-		Table.Record convRec1 = convertRecord(rec1, structure1);
-		Table.Record convRec2 = convertRecord(rec2, structure2);
-
-		return joinRecords(convRec1, convRec2, table);
-	}
-
 	private Table.Record joinRecords(Table.Record rec1, Table.Record rec2, Table table) {
 		if (rec1 == null || rec2 == null) {
 			return null;
 		}
-		
+
 		Table.Record result = new Table.Record();
 
 		for (String attributeName : table.getSchema()) {
@@ -282,21 +306,6 @@ public class JoinTasklet implements Tasklet {
 		}
 
 		return result;
-	}
-
-	private Table.Record convertRecord(CsvRecord rec, Table table) {
-		Table.Record newRecord = new Table.Record();
-		for (int i = 0; i < table.getSchema().size(); i++) {
-			try {
-				String key = table.getSchema().get(i);
-				String value = rec.getList().get(i);
-				newRecord.setAttribute(key, value);
-			} catch (IndexOutOfBoundsException e) { // maybe the record doesn't match the schema
-				return null;
-			}
-			
-		}
-		return newRecord;
 	}
 
 	private CsvRecord readNextRecord(CsvItemReader reader) {

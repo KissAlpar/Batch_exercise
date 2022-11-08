@@ -20,6 +20,7 @@ import org.springframework.batch.core.job.flow.Flow;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
@@ -30,6 +31,7 @@ import org.springframework.context.annotation.Configuration;
 import com.opencsv.CSVParser;
 import com.opencsv.CSVParserBuilder;
 
+import msg.kissa2.exercise.batch.processor.FilterProcessor;
 import msg.kissa2.exercise.batch.reader.CsvItemReader;
 import msg.kissa2.exercise.batch.tasklets.JoinTasklet;
 import msg.kissa2.exercise.batch.writer.DocumentWriter;
@@ -80,6 +82,12 @@ public class BatchConfiguration {
     }*/
 
     // define jobs and steps
+    
+    @Bean
+    public ItemProcessor<?, ?> filterProcessor() {
+    	return new FilterProcessor();
+    }
+    
     @Bean
     public Job segregateHistFile() throws Exception {
         return  jobBuilderFactory.get("segregateHistFileJob")
@@ -122,10 +130,11 @@ public class BatchConfiguration {
     @SuppressWarnings("unchecked")
 	@Bean
     public Step segregateTablesStep() throws Exception {
-        return  stepBuilderFactory.get("step")
+        return  stepBuilderFactory.get("segregateTablesStep")
                 .chunk(100)
                 .reader(reader())
                 //.processor(recordProcessor())
+                .processor((ItemProcessor<? super Object, ? extends Object>) filterProcessor())
                 .writer((ItemWriter<? super Object>) writer())
                 .build();
     }
