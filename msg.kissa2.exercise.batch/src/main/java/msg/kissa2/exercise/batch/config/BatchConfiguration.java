@@ -43,8 +43,8 @@ import msg.kissa2.exercise.batch.writer.DocumentWriter;
 @EnableBatchProcessing
 public class BatchConfiguration {
     private Path path = Paths.get(
-            ClassLoader.getSystemResource("simplohist307.csv").toURI()
-    		//ClassLoader.getSystemResource("simplohistKSK.csv").toURI()
+            // ClassLoader.getSystemResource("simplohist307.csv").toURI()
+    		ClassLoader.getSystemResource("simplohistKSK.csv").toURI()
     );
 
     @Autowired
